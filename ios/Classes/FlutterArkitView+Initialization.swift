@@ -18,17 +18,59 @@ extension FlutterArkitView {
 
         sceneView.debugOptions = parseDebugOptions(arguments)
         Task {
-            configuration = parseConfiguration(arguments)
-            DispatchQueue.main.async {
-                if let config = self.configuration {
-                    self.sceneView.session.run(config)
-                    self.sendToFlutter("onInitialized", arguments: nil)
-                } else {
-                    logPluginError("Failed to create ARConfiguration", toChannel: self.channel)
+            let allImages = arguments["detectionImages"] as? [[String: Any]] ?? []
+            if(allImages.count > 100) {
+                let imageBatches = stride(from: 0, to: allImages.count, by: 100).map {
+                            Array(allImages[$0..<min($0 + 100, allImages.count)])
+                        }
+
+                        DispatchQueue.main.async {
+                            self.runImageDetectionBatches(
+                                baseArguments: arguments,
+                                imageBatches: imageBatches,
+                                isInitialization: true
+                            )
+                        }
+            } else {
+                configuration = parseConfiguration(arguments)
+                DispatchQueue.main.async {
+                    if let config = self.configuration {
+                        self.sceneView.session.run(config)
+                        self.sendToFlutter("onInitialized", arguments: nil)
+                    } else {
+                        logPluginError("Failed to create ARConfiguration", toChannel: self.channel)
+                    }
                 }
             }
+            
         }
         
+    }
+    
+    private func runImageDetectionBatches(
+        baseArguments: [String: Any],
+        imageBatches: [[Any]],
+        batchIndex: Int = 0,
+        isInitialization: Bool = false
+    ) {
+        let batchImages = imageBatches[batchIndex]
+        var arguments = baseArguments
+        arguments["detectionImages"] = batchImages
+        configuration = parseConfiguration(arguments)
+
+        sceneView.session.run(configuration!, options: [.resetTracking])
+        if(isInitialization) {
+            self.sendToFlutter("onInitialized", arguments: nil)
+        }
+
+        // Allocate time per batch (Apple-approved behavior)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            self.runImageDetectionBatches(
+                baseArguments: baseArguments,
+                imageBatches: imageBatches,
+                batchIndex: batchIndex == imageBatches.count - 1 ? 0 : batchIndex + 1
+            )
+        }
     }
 
     func parseDebugOptions(_ arguments: [String: Any]) -> SCNDebugOptions {
