@@ -58,7 +58,7 @@ extension FlutterArkitView {
         arguments["detectionImages"] = batchImages
         configuration = parseConfiguration(arguments)
 
-        sceneView.session.run(configuration!, options: [.resetTracking])
+        sceneView.session.run(configuration!, options: [.removeExistingAnchors])
         if(isInitialization) {
             self.sendToFlutter("onInitialized", arguments: nil)
         }
