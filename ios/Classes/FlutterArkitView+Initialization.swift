@@ -57,10 +57,13 @@ extension FlutterArkitView {
         var arguments = baseArguments
         arguments["detectionImages"] = batchImages
         configuration = parseConfiguration(arguments)
-
-        sceneView.session.run(configuration!, options: [.removeExistingAnchors])
-        if(isInitialization) {
-            self.sendToFlutter("onInitialized", arguments: nil)
+        if let config = self.configuration {
+            self.sceneView.session.run(config, options: [.removeExistingAnchors])
+            if(isInitialization) {
+                self.sendToFlutter("onInitialized", arguments: nil)
+            }
+        } else {
+            logPluginError("Failed to create ARConfiguration", toChannel: self.channel)
         }
 
         // Allocate time per batch (Apple-approved behavior)
