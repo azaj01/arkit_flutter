@@ -1,9 +1,9 @@
 # Changelog
 
-## 1.2.2
+## 1.3.0
 
+* BREAKING CHANGE! Make network image loading asynchronous
 * Implement batch processing for image detection when exceeding 100 images (by @vlad0209)
-* Fix problem with asynchronous image loading from network
 
 ## 1.2.1
 
