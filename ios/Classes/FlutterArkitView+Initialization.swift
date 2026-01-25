@@ -17,31 +17,81 @@ extension FlutterArkitView {
         initalizeGesutreRecognizers(arguments)
 
         sceneView.debugOptions = parseDebugOptions(arguments)
-        Task {
-            configuration = parseConfiguration(arguments)
-            DispatchQueue.main.async {
-                if let config = self.configuration {
-                    self.sceneView.session.run(config)
-                    self.sendToFlutter("onInitialized", arguments: nil)
-                } else {
-                    logPluginError("Failed to create ARConfiguration", toChannel: self.channel)
-                }
+        
+        // Check for large sets of images to detect (World Tracking) or track (Image Tracking)
+        let detectionImages = arguments["detectionImages"] as? [[String: Any]] ?? []
+        let trackingImages = arguments["trackingImages"] as? [[String: Any]] ?? []
+        
+        let (allImages, key) = !detectionImages.isEmpty
+            ? (detectionImages, "detectionImages")
+            : (trackingImages, "trackingImages")
+
+        if allImages.count > 100 {
+            let imageBatches = stride(from: 0, to: allImages.count, by: 100).map {
+                Array(allImages[$0..<min($0 + 100, allImages.count)])
             }
+            runImageDetectionBatches(
+                baseArguments: arguments,
+                imageKey: key,
+                imageBatches: imageBatches,
+                sendInitialized: true
+            )
+        } else {
+            runConfiguration(arguments, sendInitialized: true)
+        }
+    }
+    
+    private func runConfiguration(_ arguments: [String: Any], sendInitialized: Bool) {
+        guard !isDisposed else { return }
+        
+        configuration = parseConfiguration(arguments)
+        
+        guard let config = configuration else {
+            logPluginError("Failed to create ARConfiguration", toChannel: channel)
+            return
         }
         
+        // Do NOT use .removeExistingAnchors to preserve the world state
+        sceneView.session.run(config)
+        
+        if sendInitialized {
+            sendToFlutter("onInitialized", arguments: nil)
+        }
+    }
+    
+    private func runImageDetectionBatches(
+        baseArguments: [String: Any],
+        imageKey: String,
+        imageBatches: [[Any]],
+        batchIndex: Int = 0,
+        sendInitialized: Bool = false
+    ) {
+        guard !isDisposed else { return }
+        
+        var arguments = baseArguments
+        arguments[imageKey] = imageBatches[batchIndex]
+        
+        runConfiguration(arguments, sendInitialized: sendInitialized)
+        
+        // Schedule next batch rotation
+        let nextIndex = (batchIndex + 1) % imageBatches.count
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            self?.runImageDetectionBatches(
+                baseArguments: baseArguments,
+                imageKey: imageKey,
+                imageBatches: imageBatches,
+                batchIndex: nextIndex
+            )
+        }
     }
 
     func parseDebugOptions(_ arguments: [String: Any]) -> SCNDebugOptions {
         var options = ARSCNDebugOptions().rawValue
-        if let showFeaturePoint = arguments["showFeaturePoints"] as? Bool {
-            if showFeaturePoint {
-                options |= ARSCNDebugOptions.showFeaturePoints.rawValue
-            }
+        if arguments["showFeaturePoints"] as? Bool == true {
+            options |= ARSCNDebugOptions.showFeaturePoints.rawValue
         }
-        if let showWorldOrigin = arguments["showWorldOrigin"] as? Bool {
-            if showWorldOrigin {
-                options |= ARSCNDebugOptions.showWorldOrigin.rawValue
-            }
+        if arguments["showWorldOrigin"] as? Bool == true {
+            options |= ARSCNDebugOptions.showWorldOrigin.rawValue
         }
         return ARSCNDebugOptions(rawValue: options)
     }
@@ -85,14 +135,10 @@ extension FlutterArkitView {
     }
 
     func parseWorldAlignment(_ arguments: [String: Any]) -> ARConfiguration.WorldAlignment {
-        if let worldAlignment = arguments["worldAlignment"] as? Int {
-            if worldAlignment == 0 {
-                return .gravity
-            }
-            if worldAlignment == 1 {
-                return .gravityAndHeading
-            }
+        switch arguments["worldAlignment"] as? Int {
+        case 0: return .gravity
+        case 1: return .gravityAndHeading
+        default: return .camera
         }
-        return .camera
     }
 }
