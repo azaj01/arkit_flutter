@@ -1,5 +1,84 @@
 import Foundation
 
+private let networkSession: URLSession = {
+    let sessionConfig = URLSessionConfiguration.ephemeral
+    sessionConfig.timeoutIntervalForRequest = 15
+    sessionConfig.timeoutIntervalForResource = 20
+    return URLSession(configuration: sessionConfig)
+}()
+
+private let imageCache = NSCache<NSString, UIImage>()
+
+func prefetchImagesIfNeeded(_ names: [String], completion: @escaping () -> Void) {
+    let urls = names.compactMap { URL(string: $0) }.filter {
+        $0.scheme == "http" || $0.scheme == "https"
+    }
+
+    guard !urls.isEmpty else {
+        completion()
+        return
+    }
+
+    let group = DispatchGroup()
+    for url in urls {
+        if imageCache.object(forKey: url.absoluteString as NSString) != nil {
+            continue
+        }
+        group.enter()
+        fetchNetworkImageIfNeeded(url) { _ in
+            group.leave()
+        }
+    }
+
+    group.notify(queue: .main) {
+        completion()
+    }
+}
+
+func fetchNetworkImageIfNeeded(_ url: URL, completion: @escaping (UIImage?) -> Void) {
+    if let cached = imageCache.object(forKey: url.absoluteString as NSString) {
+        completion(cached)
+        return
+    }
+    var request = URLRequest(url: url)
+    request.cachePolicy = .reloadIgnoringLocalCacheData
+    request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
+
+    let task = networkSession.dataTask(with: request) { data, response, error in
+        if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+            let httpURLString = http.url?.absoluteString ?? ""
+            debugPrint("getImageByName: network non-2xx status \(http.statusCode) url \(httpURLString)")
+        }
+
+        if let error = error {
+            let nsError = error as NSError
+            debugPrint(
+                "getImageByName: network load failed for \(url.absoluteString) " +
+                "error: \(nsError.localizedDescription) " +
+                "domain: \(nsError.domain) code: \(nsError.code) " +
+                "userInfo: \(nsError.userInfo)"
+            )
+            completion(nil)
+            return
+        }
+
+        guard let data = data else {
+            debugPrint("getImageByName: network returned no data for \(url.absoluteString)")
+            completion(nil)
+            return
+        }
+
+        let img = UIImage(data: data)
+        if img == nil {
+            debugPrint("getImageByName: network data not decodable as image for \(url.absoluteString) (bytes: \(data.count))")
+        } else {
+            imageCache.setObject(img!, forKey: url.absoluteString as NSString)
+        }
+        completion(img)
+    }
+    task.resume()
+}
+
 func getImageByName(_ name: String) -> UIImage? {
     if let img = UIImage(named: name) {
         return img
@@ -12,33 +91,11 @@ func getImageByName(_ name: String) -> UIImage? {
         return img
     }
     if let url = URL(string: name) {
-        let (data, response, error) = fetchUrlData(url)
-        if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-            let httpURLString = http.url?.absoluteString ?? ""
-            debugPrint("getImageByName: network non-2xx status \(http.statusCode) url \(httpURLString)")
+        if let cached = imageCache.object(forKey: url.absoluteString as NSString) {
+            return cached
         }
-
-        if let error = error {
-            let nsError = error as NSError
-            debugPrint(
-                "getImageByName: network load failed for \(name) (\(url)) " +
-                "error: \(nsError.localizedDescription) " +
-                "domain: \(nsError.domain) code: \(nsError.code) " +
-                "userInfo: \(nsError.userInfo)"
-            )
-            return nil
-        }
-
-        guard let data = data else {
-            debugPrint("getImageByName: network returned no data for \(name)")
-            return nil
-        }
-
-        let img = UIImage(data: data)
-        if img == nil {
-            debugPrint("getImageByName: network data not decodable as image for \(name) (bytes: \(data.count))")
-        }
-        return img
+        debugPrint("getImageByName: network image not prefetched for \(name)")
+        return nil
     }
     if let base64 = Data(base64Encoded: name, options: .ignoreUnknownCharacters) {
         let img = UIImage(data: base64)
@@ -49,40 +106,4 @@ func getImageByName(_ name: String) -> UIImage? {
     }
     debugPrint("getImageByName: failed to resolve image for \(name)")
     return nil
-}
-
-private func fetchUrlData(_ url: URL) -> (Data?, URLResponse?, Error?) {
-    let sessionConfig = URLSessionConfiguration.ephemeral
-    sessionConfig.timeoutIntervalForRequest = 15
-    sessionConfig.timeoutIntervalForResource = 20
-
-    let session = URLSession(configuration: sessionConfig)
-    var request = URLRequest(url: url)
-    request.cachePolicy = .reloadIgnoringLocalCacheData
-    request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
-
-    let semaphore = DispatchSemaphore(value: 0)
-    var resultData: Data?
-    var resultResponse: URLResponse?
-    var resultError: Error?
-
-    let task = session.dataTask(with: request) { data, response, error in
-        resultData = data
-        resultResponse = response
-        resultError = error
-        semaphore.signal()
-    }
-    task.resume()
-
-    let waitResult = semaphore.wait(timeout: .now() + 20)
-    if waitResult == .timedOut {
-        let timeoutError = NSError(
-            domain: NSURLErrorDomain,
-            code: NSURLErrorTimedOut,
-            userInfo: [NSLocalizedDescriptionKey: "URLSession timed out"]
-        )
-        return (nil, nil, timeoutError)
-    }
-
-    return (resultData, resultResponse, resultError)
 }
