@@ -26,18 +26,22 @@ extension FlutterArkitView {
             ? (detectionImages, "detectionImages")
             : (trackingImages, "trackingImages")
 
-        if allImages.count > 100 {
-            let imageBatches = stride(from: 0, to: allImages.count, by: 100).map {
-                Array(allImages[$0..<min($0 + 100, allImages.count)])
+        let imageNames = allImages.compactMap { $0["name"] as? String }
+        prefetchImagesIfNeeded(imageNames) { [weak self] in
+            guard let self = self else { return }
+            if allImages.count > 100 {
+                let imageBatches = stride(from: 0, to: allImages.count, by: 100).map {
+                    Array(allImages[$0..<min($0 + 100, allImages.count)])
+                }
+                self.runImageDetectionBatches(
+                    baseArguments: arguments,
+                    imageKey: key,
+                    imageBatches: imageBatches,
+                    sendInitialized: true
+                )
+            } else {
+                self.runConfiguration(arguments, sendInitialized: true)
             }
-            runImageDetectionBatches(
-                baseArguments: arguments,
-                imageKey: key,
-                imageBatches: imageBatches,
-                sendInitialized: true
-            )
-        } else {
-            runConfiguration(arguments, sendInitialized: true)
         }
     }
     

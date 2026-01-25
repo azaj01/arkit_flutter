@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0
+
+* BREAKING CHANGE! Make network image loading asynchronous
+* Implement batch processing for image detection when exceeding 100 images (by @vlad0209)
+
 ## 1.2.1
 
 * Enhance ARKit initialization by adding onInitialized callback (by @vlad0209)
