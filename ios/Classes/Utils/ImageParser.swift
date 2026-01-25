@@ -1,7 +1,7 @@
 import Foundation
 
 private let networkSession: URLSession = {
-    let sessionConfig = URLSessionConfiguration.ephemeral
+    let sessionConfig = URLSessionConfiguration.default
     sessionConfig.timeoutIntervalForRequest = 15
     sessionConfig.timeoutIntervalForResource = 20
     return URLSession(configuration: sessionConfig)
@@ -57,7 +57,7 @@ func fetchNetworkImageIfNeeded(_ url: URL, completion: @escaping (UIImage?) -> V
     }
 
     var request = URLRequest(url: url)
-    request.cachePolicy = .reloadIgnoringLocalCacheData
+    request.cachePolicy = .useProtocolCachePolicy
     request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
 
     let task = networkSession.dataTask(with: request) { data, response, error in
