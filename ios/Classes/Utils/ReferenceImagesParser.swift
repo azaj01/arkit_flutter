@@ -7,14 +7,24 @@ func parseReferenceImagesSet(_ images: [[String: Any]]) -> Set<ARReferenceImage>
 }
 
 func parseReferenceImage(_ dict: [String: Any]) -> ARReferenceImage? {
-    if let physicalWidth = dict["physicalWidth"] as? Double,
-       let name = dict["name"] as? String,
-       let image = getImageByName(name),
-       let cgImage = image.cgImage
-    {
-        let referenceImage = ARReferenceImage(cgImage, orientation: CGImagePropertyOrientation.up, physicalWidth: CGFloat(physicalWidth))
-        referenceImage.name = name
-        return referenceImage
+    guard let physicalWidth = dict["physicalWidth"] as? Double else {
+        debugPrint("ARKitReferenceImage: missing or invalid physicalWidth: \(dict)")
+        return nil
     }
-    return nil
+    guard let name = dict["name"] as? String else {
+        debugPrint("ARKitReferenceImage: missing or invalid name: \(dict)")
+        return nil
+    }
+    guard let image = getImageByName(name) else {
+        debugPrint("ARKitReferenceImage: failed to load image for name: \(name)")
+        return nil
+    }
+    guard let cgImage = image.cgImage else {
+        debugPrint("ARKitReferenceImage: loaded image has no CGImage for name: \(name)")
+        return nil
+    }
+
+    let referenceImage = ARReferenceImage(cgImage, orientation: CGImagePropertyOrientation.up, physicalWidth: CGFloat(physicalWidth))
+    referenceImage.name = name
+    return referenceImage
 }
