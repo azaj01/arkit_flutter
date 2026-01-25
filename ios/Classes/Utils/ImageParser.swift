@@ -8,6 +8,8 @@ private let networkSession: URLSession = {
 }()
 
 private let imageCache = NSCache<NSString, UIImage>()
+private let imageFetchQueue = DispatchQueue(label: "arkit.imageFetchQueue")
+private var pendingImageRequests: [String: [(UIImage?) -> Void]] = [:]
 
 func prefetchImagesIfNeeded(_ names: [String], completion: @escaping () -> Void) {
     let urls = names.compactMap { URL(string: $0) }.filter {
@@ -40,6 +42,20 @@ func fetchNetworkImageIfNeeded(_ url: URL, completion: @escaping (UIImage?) -> V
         completion(cached)
         return
     }
+    let cacheKey = url.absoluteString
+    var shouldStartRequest = false
+    imageFetchQueue.sync {
+        if pendingImageRequests[cacheKey] != nil {
+            pendingImageRequests[cacheKey]?.append(completion)
+        } else {
+            pendingImageRequests[cacheKey] = [completion]
+            shouldStartRequest = true
+        }
+    }
+    if !shouldStartRequest {
+        return
+    }
+
     var request = URLRequest(url: url)
     request.cachePolicy = .reloadIgnoringLocalCacheData
     request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
@@ -58,13 +74,15 @@ func fetchNetworkImageIfNeeded(_ url: URL, completion: @escaping (UIImage?) -> V
                 "domain: \(nsError.domain) code: \(nsError.code) " +
                 "userInfo: \(nsError.userInfo)"
             )
-            completion(nil)
+            let completions = imageFetchQueue.sync { pendingImageRequests.removeValue(forKey: cacheKey) } ?? []
+            completions.forEach { $0(nil) }
             return
         }
 
         guard let data = data else {
             debugPrint("getImageByName: network returned no data for \(url.absoluteString)")
-            completion(nil)
+            let completions = imageFetchQueue.sync { pendingImageRequests.removeValue(forKey: cacheKey) } ?? []
+            completions.forEach { $0(nil) }
             return
         }
 
@@ -74,7 +92,8 @@ func fetchNetworkImageIfNeeded(_ url: URL, completion: @escaping (UIImage?) -> V
         } else {
             imageCache.setObject(img!, forKey: url.absoluteString as NSString)
         }
-        completion(img)
+        let completions = imageFetchQueue.sync { pendingImageRequests.removeValue(forKey: cacheKey) } ?? []
+        completions.forEach { $0(img) }
     }
     task.resume()
 }
