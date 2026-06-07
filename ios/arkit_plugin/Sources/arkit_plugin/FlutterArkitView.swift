@@ -1,5 +1,7 @@
 import ARKit
+import Flutter
 import Foundation
+import UIKit
 
 class FlutterArkitView: NSObject, FlutterPlatformView {
     let sceneView: ARSCNView

@@ -1,3 +1,4 @@
+import Flutter
 import Foundation
 
 func logPluginError(_ message: String, toChannel channel: FlutterMethodChannel) {
