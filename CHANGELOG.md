@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0
+
+* Migrate to Swift Package Manager
+
 ## 1.3.0
 
 * BREAKING CHANGE! Make network image loading asynchronous

@@ -1,4 +1,7 @@
 import ARKit
+import CoreImage
+import Flutter
+import UIKit
 
 extension FlutterArkitView {
     func onAddNode(_ arguments: [String: Any]) {

@@ -1,4 +1,5 @@
 import ARKit
+import Flutter
 
 extension FlutterArkitView {
     func initalize(_ arguments: [String: Any], _: FlutterResult) {

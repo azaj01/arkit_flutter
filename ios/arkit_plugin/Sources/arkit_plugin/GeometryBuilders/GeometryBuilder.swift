@@ -1,5 +1,8 @@
 import ARKit
 import Foundation
+import Metal
+import SpriteKit
+import UIKit
 
 func createGeometry(_ arguments: [String: Any]?, withDevice device: MTLDevice?) -> SCNGeometry? {
     if let arguments = arguments {

@@ -1,4 +1,5 @@
 import ARKit
+import Metal
 
 func createSphere(_ arguments: [String: Any]) -> SCNSphere {
     let radius = arguments["radius"] as! Double

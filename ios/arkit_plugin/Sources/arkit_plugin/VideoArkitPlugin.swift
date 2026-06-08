@@ -1,5 +1,6 @@
 import ARKit
 import Flutter
+import SpriteKit
 
 public class VideoArkitPlugin: NSObject, FlutterPlugin {
     static var nodes = [String: SKVideoNode]()

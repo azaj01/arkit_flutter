@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 private let networkSession: URLSession = {
     let sessionConfig = URLSessionConfiguration.default
