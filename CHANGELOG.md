@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1
+
+* BREAKING CHANGE: `DISABLE_TRUEDEPTH_API` replaced with `ENABLE_TRUEDEPTH_API`. TrueDepth/face-tracking code is now excluded by default. Refer to the README for details on how to enable it.
+
 ## 1.4.0
 
 * Migrate to Swift Package Manager
