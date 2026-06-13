@@ -36,7 +36,7 @@ func createGeometry(_ arguments: [String: Any]?, withDevice device: MTLDevice?) 
             #if ENABLE_TRUEDEPTH_API
                 geometry = createFace(device)
             #else
-                // error
+                assertionFailure("Face tracking requires ENABLE_TRUEDEPTH_API. Add ARKitFaceTrackingEnabled=true to ios/Runner/Info.plist.")
             #endif
         default:
             // error
