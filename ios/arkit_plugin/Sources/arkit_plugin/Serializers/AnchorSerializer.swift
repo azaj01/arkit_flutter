@@ -15,7 +15,7 @@ func serializeAnchor(_ anchor: ARAnchor) -> [String: Any] {
         params = serializeImageAnchor(imageAnchor, params)
     }
 
-    #if !DISABLE_TRUEDEPTH_API
+    #if ENABLE_TRUEDEPTH_API
         if let faceAnchor = anchor as? ARFaceAnchor {
             params = serializeFaceAnchor(faceAnchor, params)
         }
@@ -50,7 +50,7 @@ private func serializeImageAnchor(_ anchor: ARImageAnchor, _ params: [String: An
     return params
 }
 
-#if !DISABLE_TRUEDEPTH_API
+#if ENABLE_TRUEDEPTH_API
     fileprivate func serializeFaceAnchor(_ anchor: ARFaceAnchor, _ params: [String: Any]) -> [String: Any] {
         var params = params
         params["anchorType"] = "faceAnchor"

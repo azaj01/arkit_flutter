@@ -109,7 +109,7 @@ extension FlutterArkitView {
         case 0:
             configuration = createWorldTrackingConfiguration(arguments)
         case 1:
-            #if !DISABLE_TRUEDEPTH_API
+            #if ENABLE_TRUEDEPTH_API
                 configuration = createFaceTrackingConfiguration(arguments)
             #else
                 logPluginError("TRUEDEPTH_API disabled", toChannel: channel)

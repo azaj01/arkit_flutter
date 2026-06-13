@@ -11,7 +11,7 @@ func checkConfiguration(_ arguments: Any?) -> Bool {
     case 0:
         return ARWorldTrackingConfiguration.isSupported
     case 1:
-        #if !DISABLE_TRUEDEPTH_API
+        #if ENABLE_TRUEDEPTH_API
             return ARFaceTrackingConfiguration.isSupported
         #else
             return false

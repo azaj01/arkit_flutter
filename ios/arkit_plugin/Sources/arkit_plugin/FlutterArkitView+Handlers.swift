@@ -135,7 +135,7 @@ extension FlutterArkitView {
     }
 
     func onUpdateFaceGeometry(_ arguments: [String: Any]) {
-        #if !DISABLE_TRUEDEPTH_API
+        #if ENABLE_TRUEDEPTH_API
             guard let name = arguments["name"] as? String,
                   let param = arguments["geometry"] as? [String: Any],
                   let fromAnchorId = param["fromAnchorId"] as? String
