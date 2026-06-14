@@ -1,10 +1,12 @@
 # Changelog
 
-## 1.4.1
+## 1.5.0
 
-* BREAKING CHANGE: `DISABLE_TRUEDEPTH_API` replaced with `ENABLE_TRUEDEPTH_API`. TrueDepth/face-tracking code is now excluded by default. Refer to the README for details on how to enable it.
+* **BREAKING CHANGE** TrueDepth/face-tracking code is now excluded by default. `DISABLE_TRUEDEPTH_API` is replaced with `ENABLE_TRUEDEPTH_API`. If your app uses face tracking, refer to the README to re-enable it.
 
 ## 1.4.0
+
+* _WARNING!_ Under SPM, `DISABLE_TRUEDEPTH_API` is silently ignored — all SPM builds include TrueDepth/face-tracking code, which may cause App Store rejection for apps that don't use face tracking. Upgrade to 1.5.0 to fix this.
 
 * Migrate to Swift Package Manager
 
