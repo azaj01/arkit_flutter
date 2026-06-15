@@ -135,7 +135,7 @@ extension FlutterArkitView {
     }
 
     func onUpdateFaceGeometry(_ arguments: [String: Any]) {
-        #if !DISABLE_TRUEDEPTH_API
+        #if ENABLE_TRUEDEPTH_API
             guard let name = arguments["name"] as? String,
                   let param = arguments["geometry"] as? [String: Any],
                   let fromAnchorId = param["fromAnchorId"] as? String
@@ -152,7 +152,7 @@ extension FlutterArkitView {
                 logPluginError("node not found, geometry was empty, or anchor not found", toChannel: channel)
             }
         #else
-            logPluginError("TRUEDEPTH_API disabled", toChannel: channel)
+            logPluginError("Face tracking is not enabled. Add ARKitFaceTrackingEnabled=true to ios/Runner/Info.plist (SPM) or -DENABLE_TRUEDEPTH_API to OTHER_SWIFT_FLAGS (CocoaPods).", toChannel: channel)
         #endif
     }
 
