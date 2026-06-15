@@ -127,21 +127,7 @@ If your app requires placing objects consider using coaching overlays. Review th
 
 TrueDepth/face-tracking code is **not compiled in by default**, so most apps are App Store-safe without any extra configuration.
 
-If your app uses face tracking, opt in by setting the `ENABLE_TRUEDEPTH_API` Swift flag:
-
-**CocoaPods** — add to `ios/Podfile`:
-```Ruby
-post_install do |installer|
-  installer.pods_project.targets.each do |target|
-    flutter_additional_ios_build_settings(target)
-    if target.name == 'arkit_plugin'
-      target.build_configurations.each do |config|
-        config.build_settings['OTHER_SWIFT_FLAGS'] = '$(inherited) -DENABLE_TRUEDEPTH_API'
-      end
-    end
-  end
-end
-```
+If your app uses face tracking, opt in by enabling the `ENABLE_TRUEDEPTH_API` Swift flag. Flutter 3.44+ builds plugins with Swift Package Manager, so follow the **SPM** steps below. The **CocoaPods** section applies only to older Flutter versions that still build with CocoaPods — if you've configured SPM, you don't need it.
 
 **SPM (Flutter 3.44+)** — Add a key to `ios/Runner/Info.plist`:
 ```xml
@@ -154,6 +140,11 @@ rm -rf ~/Library/Caches/org.swift.swiftpm/manifests
 rm -rf ~/Library/Developer/Xcode/DerivedData
 ```
 
+> **Important:** clearing the manifest cache is required. SwiftPM caches the
+> evaluated `Package.swift` keyed on the manifest's own contents, so a change to
+> `Info.plist` alone does not invalidate it — `flutter clean` and Xcode's
+> *Clean Build Folder* are not enough on their own.
+
 For monorepos or other layouts where `ios/Runner/Info.plist` is not found automatically, use an environment variable instead:
 ```sh
 # When building from terminal (flutter run / flutter build)
@@ -163,6 +154,20 @@ export ARKIT_FACE_TRACKING_ENABLED=1
 launchctl setenv ARKIT_FACE_TRACKING_ENABLED 1
 ```
 Then clear the SwiftPM manifest cache and DerivedData as above.
+
+**CocoaPods (older Flutter versions only)** — if your project still builds with CocoaPods instead of SPM, add to `ios/Podfile`:
+```Ruby
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+    if target.name == 'arkit_plugin'
+      target.build_configurations.each do |config|
+        config.build_settings['OTHER_SWIFT_FLAGS'] = '$(inherited) -DENABLE_TRUEDEPTH_API'
+      end
+    end
+  end
+end
+```
 
 
 ## FAQ
